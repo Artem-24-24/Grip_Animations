@@ -1,12 +1,22 @@
-import * as THREE from 'three'
-import {VRButton} from "three/examples/jsm/webxr/VRButton"
-import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
-import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader"
+import * as THREE from '../libs/three124/three.module.js'
+import {VRButton} from "../libs/three124/jsm/VRButton";
+import {GLTFLoader} from "../libs/three124/jsm/GLTFLoader";
+import {DRACOLoader} from "../libs/three124/jsm/DRACOLoader"
+
+import {XRControllerModelFactory} from "three/examples/jsm/webxr/XRControllerModelFactory";
 
 import blimp from "../assets/Blimp.glb"
 import chair from "../assets/medieval-chair.glb"
+import knight from "../assets/knight_main.glb"
+// import {LoadingBar} from "../libs/LoadingBar";
+
+
 
 class App {
+  clock = new THREE.Clock();
+  world;
+
+
   constructor() {
     const container = document.createElement('div')
     document.body.appendChild(container)
@@ -31,6 +41,7 @@ class App {
     this.renderer.outputEncoding = THREE.sRGBEncoding
     container.appendChild(this.renderer.domElement)
 
+    // this.loadingBar = new LoadingBar();
 
     this.initScene()
     this.setupVR()
@@ -41,6 +52,12 @@ class App {
 
 
   initScene() {
+
+    this.loadGLTF(knight);
+    //this.loadGLTF( modelFilename );
+
+    const self = this
+
     const geometry = new THREE.BoxBufferGeometry(.5, .5, .5)
     const material = new THREE.MeshStandardMaterial({color: 0xFF0000})
     this.mesh = new THREE.Mesh(geometry, material)
@@ -53,45 +70,179 @@ class App {
 
     sphere.position.set(1.5, 0, 0)
 
-    this.loadAsset(blimp, -.5, .5, 1, scene => {
-      const scale = 5
-      scene.scale.set(scale, scale, scale)
-      self.blimp = scene
-    })
+    // this.loadAsset(blimp, -.5, .5, 1, scene => {
+    //   const scale = 5
+    //   scene.scale.set(scale, scale, scale)
+    //   self.blimp = scene
+    // })
 
-    this.loadAsset(chair, .5, .5, 1, scene => {
-      const scale = 1
-      scene.scale.set(scale, scale, scale)
-      self.chair = scene
-    })
+
+    // this.loadAsset(knight, gltf => {
+    //   const gltfScene = gltf.scene.children[0]
+    //   gltfScene.position.set(0, 0, -5)
+    //
+    //   self.knight = gltfScene
+    //   const scale = .01;
+    //   self.knight.scale.set(scale, scale, scale);
+    //
+    //   self.scene.add(gltfScene)
+    //
+    //   // animations
+    //   self.animations = {};
+    //
+    //   gltf.animations.forEach((anim) => {
+    //     self.animations[anim.name] = anim;
+    //   })
+    //
+    //   self.mixer = new THREE.AnimationMixer(self.knight)
+    //   self.action = "Idle";
+    // })
+
+    // this.loadAsset(chair, .5, .5, 1, scene => {
+    //   const scale = 1
+    //   scene.scale.set(scale, scale, scale)
+    //   self.chair = scene
+    // })
 
   }
 
-  loadAsset(gltfFilename, x, y, z, sceneHandler) {
-    const self = this
-    const loader = new GLTFLoader()
-    // Provide a DRACOLoader instance to decode compressed mesh data
-    const draco = new DRACOLoader()
-    draco.setDecoderPath('draco/')
-    loader.setDRACOLoader(draco)
+  //loadAsset(gltfFilename,sceneHandler) {
+    // const loader = new GLTFLoader()
+    // // Provide a DRACOLoader instance to decode compressed mesh data
+    // const draco = new DRACOLoader()
+    // draco.setDecoderPath('draco/')
+    // loader.setDRACOLoader(draco)
+    //
+    // loader.load(gltfFilename, (gltf) => {
+    //
+    //       if (sceneHandler) {
+    //         sceneHandler(gltf)
+    //       }
+    //     },
+    //     null,
+    //     (error) => console.error(`An error happened: ${error}`)
+    // )
+  //}
 
-    loader.load(gltfFilename, (gltf) => {
-          const gltfScene = gltf.scene
-          self.scene.add(gltfScene)
-          gltfScene.position.set(x, y, z)
-          if (sceneHandler) {
-            sceneHandler(gltfScene)
-          }
-        },
-        null,
-        (error) => console.error(`An error happened: ${error}`)
-    )
+  set action(name) {
+    if (this.actionName === name) return;
+
+    const clip = this.animations[name];
+
+    if (clip !== undefined) {
+      const action = this.mixer.clipAction(clip);
+
+      if (name === 'Idle') {
+        action.loop = THREE.LoopOnce;
+        action.clampWhenFinished = true;
+      }
+
+      this.actionName = name;
+      if (this.curAction) this.curAction.crossFadeTo(action, 0.5);
+
+      action.enabled = true;
+      action.play();
+
+      this.curAction = action;
+    }
   }
+
 
   setupVR() {
     this.renderer.xr.enabled = true
     document.body.appendChild(VRButton.createButton(this.renderer))
+    const grip = this.renderer.xr.getControllerGrip(0)
+    grip.add(new XRControllerModelFactory().createControllerModel(grip))
+    this.scene.add(grip)
+    const grip2 = this.renderer.xr.getControllerGrip(1)
+    grip2.add(new XRControllerModelFactory().createControllerModel(grip2))
+    this.scene.add(grip2)
+
+    this.grip = grip;
+    this.grip2 = grip2;
+
+    this.addActions()
+
   }
+
+  addActions() {
+    const self = this;
+
+    this.grip.addEventListener('selectstart', () => {
+      self.action = 'exhausted'
+    })
+
+    this.grip.addEventListener('squeezestart', () => {
+      self.action = 'walk'
+    })
+
+    this.grip2.addEventListener('selectstart', () => {
+      self.action = 'kick'
+    })
+
+    this.grip2.addEventListener('squeezestart', () => {
+      self.action = 'spider'
+    })
+
+  }
+
+
+  loadGLTF(filename){
+    const loader = new GLTFLoader( );
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath( 'draco/' );
+    loader.setDRACOLoader( dracoLoader );
+
+    const self = this;
+
+    // Load a glTF resource
+    loader.load(
+        // resource URL
+        filename,
+        // called when the resource is loaded
+        function ( gltf ) {
+          self.animations = {};
+
+          gltf.animations.forEach( (anim)=>{
+            self.animations[anim.name] = anim;
+          })
+
+          self.knight = gltf.scene.children[4];
+
+          self.mixer = new THREE.AnimationMixer( self.knight )
+
+          self.scene.add( self.knight );
+
+           // self.loadingBar.visible = false;
+
+          const scale = 0.01;
+          self.knight.scale.set(scale, scale, scale);
+          self.action = "waiting";
+
+          self.renderer.setAnimationLoop( self.render.bind(self) );
+        },
+        // called while loading is progressing
+        function ( xhr ) {
+
+          // self.loadingBar.progress = (xhr.loaded / xhr.total);
+
+        },
+        // called when loading has errors
+        function ( error ) {
+
+          console.log( 'An error happened' );
+
+        }
+    );
+  }
+
+
+  animate() {
+
+    renderer.setAnimationLoop(this.render);
+
+  }
+
 
   resize() {
     this.camera.aspect = window.innerWidth / window.innerHeight
@@ -100,17 +251,25 @@ class App {
   }
 
   render() {
-    if (this.mesh) {
-      this.mesh.rotateX(0.005)
-      this.mesh.rotateY(0.01)
+    const delta = this.clock.getDelta();
+    // const elapsedTime =  this.clock.elapsedTime;
+    //this.renderer.xr.updateCamera( this.camera );
+    this.renderer.render(this.scene, this.camera);
+    // this.world.execute( delta, elapsedTime );
+
+    if (this.mixer) {
+      this.mixer.update(delta)
     }
 
-    if (this.blimp) {
-      this.blimp.rotateY(0.1 * xAxis)
-      this.blimp.translateY(.02 * yAxis)
-    }
     this.renderer.render(this.scene, this.camera)
   }
 }
+
+
+    // if (this.blimp) {
+    //   this.blimp.rotateY(0.1 * xAxis)
+    //   this.blimp.translateY(.02 * yAxis)
+    // }
+
 
 export {App}
