@@ -12,7 +12,7 @@ import blimp from "../assets/Blimp.glb"
 // import knight from "../assets/complete/knight.glb"
 // import knight from "../assets/dandce.glb"
 // import knight from "../assets/complete/with_skin_two_action.glb"
-import knight from "../assets/knight-one-branch.glb"
+import knight from "../src/KnightRedo.glb"
 
 class App {
 
@@ -101,7 +101,7 @@ class App {
 		})
 
 		consoleButtons.setAction(PINK_BUTTON, () => {
-			self.action = 'Dance'
+			self.action = 'CatWalk'
 		})
 
 		consoleButtons.setAction(RESET_BUTTON, () => {
@@ -268,7 +268,7 @@ class App {
 
         this.gripRight.addEventListener('squeezestart', () => {
 			self.blimp.translateX(-.2)
-			self.action = 'Dance'
+			self.action = 'CatWalk'
         })
 
         this.gripLeft.addEventListener('selectstart', () => {

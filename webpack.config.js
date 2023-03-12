@@ -42,6 +42,6 @@ module.exports = {
     //   directory: path.join(__dirname, 'src/logo.png')
     // },
     compress: true,
-    port: 8080
+    port: 8888
   }
 };
